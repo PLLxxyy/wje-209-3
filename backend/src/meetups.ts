@@ -158,6 +158,34 @@ router.post('/:id/leave', authMiddleware, (req: AuthRequest, res: Response) => {
   res.json({ message: '退出成功' });
 });
 
+// 取消饭局（仅发起人）
+router.post('/:id/cancel', authMiddleware, (req: AuthRequest, res: Response) => {
+  const meetup = db.prepare('SELECT * FROM meetups WHERE id = ?').get(req.params.id) as any;
+  if (!meetup) {
+    res.status(404).json({ error: '饭局不存在' });
+    return;
+  }
+
+  if (meetup.creator_id !== req.userId!) {
+    res.status(403).json({ error: '仅发起人可以取消饭局' });
+    return;
+  }
+
+  if (meetup.status === 'settled') {
+    res.status(400).json({ error: '已结算的饭局无法取消' });
+    return;
+  }
+
+  if (meetup.status === 'cancelled') {
+    res.status(400).json({ error: '该饭局已取消' });
+    return;
+  }
+
+  db.prepare("UPDATE meetups SET status = 'cancelled' WHERE id = ?").run(req.params.id);
+
+  res.json({ message: '取消成功' });
+});
+
 // 录入实际花费（仅发起人）
 router.post('/:id/expense', authMiddleware, (req: AuthRequest, res: Response) => {
   const { actual_cost } = req.body;

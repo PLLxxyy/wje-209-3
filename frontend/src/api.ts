@@ -85,6 +85,10 @@ export async function apiLeaveMeetup(id: number) {
   return request<{ message: string }>(`/meetups/${id}/leave`, { method: 'POST' });
 }
 
+export async function apiCancelMeetup(id: number) {
+  return request<{ message: string }>(`/meetups/${id}/cancel`, { method: 'POST' });
+}
+
 export async function apiRecordExpense(id: number, actual_cost: number) {
   return request<{ message: string; actual_cost: number; per_person: number; participant_count: number }>(
     `/meetups/${id}/expense`,

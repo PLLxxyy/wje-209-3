@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { User, Meetup, Participant, STATUS_MAP, Page } from '../types';
-import { apiGetMeetup, apiJoinMeetup, apiLeaveMeetup, apiRecordExpense, apiConfirmPayment } from '../api';
+import { apiGetMeetup, apiJoinMeetup, apiLeaveMeetup, apiCancelMeetup, apiRecordExpense, apiConfirmPayment } from '../api';
 
 interface Props {
   meetupId: number;
@@ -56,6 +56,19 @@ export default function MeetupDetail({ meetupId, user, onNavigate }: Props) {
     setActionLoading(true);
     try {
       await apiLeaveMeetup(meetupId);
+      await loadData();
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleCancel = async () => {
+    if (!window.confirm('确定要取消这个饭局吗？取消后将不再在广场展示。')) return;
+    setActionLoading(true);
+    try {
+      await apiCancelMeetup(meetupId);
       await loadData();
     } catch (err: any) {
       setError(err.message);
@@ -217,10 +230,15 @@ export default function MeetupDetail({ meetupId, user, onNavigate }: Props) {
             {meetup.status === 'full' && !isParticipant && (
               <button className="btn btn-secondary" disabled>已满员</button>
             )}
-            {isParticipant && meetup.status !== 'settled' && (
+            {isParticipant && (meetup.status === 'open' || meetup.status === 'full') && (
               <span style={{ fontSize: '14px', color: 'var(--success)', display: 'flex', alignItems: 'center' }}>
                 ✓ 你已参加此饭局
               </span>
+            )}
+            {isCreator && (meetup.status === 'open' || meetup.status === 'full') && (
+              <button className="btn btn-danger" onClick={handleCancel} disabled={actionLoading}>
+                {actionLoading ? '处理中...' : '取消饭局'}
+              </button>
             )}
           </div>
         )}
@@ -234,7 +252,7 @@ export default function MeetupDetail({ meetupId, user, onNavigate }: Props) {
         )}
 
         {/* 发起人结算区域 */}
-        {isCreator && meetup.status !== 'settled' && (
+        {isCreator && (meetup.status === 'open' || meetup.status === 'full') && (
           <div className="expense-section">
             <h3>💰 结算</h3>
             <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '14px' }}>
@@ -265,6 +283,16 @@ export default function MeetupDetail({ meetupId, user, onNavigate }: Props) {
                 录入实际花费
               </button>
             )}
+          </div>
+        )}
+
+        {/* 已取消信息 */}
+        {meetup.status === 'cancelled' && (
+          <div className="expense-section">
+            <h3>🚫 饭局已取消</h3>
+            <p style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>
+              该饭局已被发起人取消，不再在广场展示。
+            </p>
           </div>
         )}
 
